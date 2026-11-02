@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TransitNotice – Service Update Tracker</title>
+<style>
+:root{color-scheme:dark;--bg:#0F172A;--sf:#1E293B;--ln:#334155;--tx:#F8FAFC;--mu:#94A3B8;--cy:#06B6D4;--bl:#3B82F6;--gr:#22C55E;--or:#F97316;--rd:#EF4444;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;min-height:100vh}
+nav{width:220px;background:var(--sf);border-right:1px solid var(--ln);padding:16px 10px;flex-shrink:0}
+nav h1{font-size:17px;margin:0 8px 16px;color:var(--cy)}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--mu);padding:9px 12px;border-radius:8px;font:inherit;cursor:pointer}
+nav button:hover,nav button.on{background:var(--bg);color:var(--tx)}nav button.on{box-shadow:inset 3px 0 var(--cy)}
+main{flex:1;min-width:0;padding:16px 20px}
+.demo{background:#7c2d12;color:#fed7aa;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:14px}
+header{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+input,select,textarea{background:var(--sf);border:1px solid var(--ln);color:var(--tx);border-radius:8px;padding:8px 10px;font:inherit}
+:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+.btn{background:var(--cy);color:#042f3a;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+.btn.alt{background:var(--sf);color:var(--tx);border:1px solid var(--ln)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:14px}
+.card b{font-size:26px;display:block}.card span{color:var(--mu);font-size:13px}
+.wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:10px;border-bottom:1px solid var(--ln);vertical-align:top}
+th{color:var(--mu);font-weight:500;font-size:13px;cursor:pointer;white-space:nowrap}
+tr.row{cursor:pointer}tr.row:hover{background:var(--sf)}
+.badge{padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;white-space:nowrap}
+.Active{background:#14532d;color:#86efac}.Upcoming{background:#7c2d12;color:#fdba74}.Expired{background:#334155;color:#cbd5e1}
+.Cancelled{background:#7f1d1d;color:#fca5a5}.Stale{background:#713f12;color:#fde68a}.Revised{background:#1e3a8a;color:#93c5fd}
+.ai{border-color:var(--cy)}.ai pre{white-space:pre-wrap;font:inherit;margin:10px 0 0}
+#cv{width:100%;height:440px;border-radius:12px;background:#0b1224;border:1px solid var(--ln);display:block;touch-action:none;cursor:grab}
+.hide{display:none}h2{margin:0 0 12px}.mu{color:var(--mu)}
+@media(max-width:720px){body{flex-direction:column}nav{width:100%;display:flex;overflow-x:auto;gap:4px;padding:8px}nav h1{display:none}nav button{width:auto;white-space:nowrap}}
+</style></head><body>
+<nav aria-label="Main"><h1>🚌 TransitNotice</h1>
+<button data-v="dash" class="on">Dashboard</button><button data-v="notices">All Notices</button>
+<button data-v="net">3D Network</button><button data-v="sources">Sources</button><button data-v="ai">AI Assistant</button><button data-v="about">About &amp; Limits</button></nav>
+<main>
+<div class="demo" role="note">DEMO MODE – every record below is fictional and illustrative, not verified live transport information.</div>
+<header><input id="q" type="search" placeholder="Search route, area, keyword…" aria-label="Search notices" style="flex:1;min-width:180px">
+<button class="btn alt" id="refresh">↻ Refresh</button><span class="mu" id="stamp"></span></header>
+
+<section id="v-dash"><div class="grid" id="cards"></div><h2>Latest notices</h2><div class="wrap" id="dashT"></div></section>
+
+<section id="v-notices" class="hide"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+<select id="fs" aria-label="Status"><option value="">All statuses</option><option>Active</option><option>Upcoming</option><option>Expired</option><option>Cancelled</option><option>Stale</option></select>
+<select id="ft" aria-label="Type"><option value="">All types</option></select></div>
+<div class="wrap" id="allT"></div>
+<div class="card hide" id="detail" style="margin-top:14px" tabindex="-1"></div></section>
+
+<section id="v-net" class="hide"><h2>3D Network <span class="badge Upcoming">DEMO</span></h2>
+<div class="card ai" style="margin-bottom:12px"><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="trip" style="flex:1;min-width:200px" aria-label="Trip description" placeholder="Describe a trip, e.g. Harbor District to Campus tomorrow morning"><button class="btn" id="plan">✨ AI trip impact</button></div><pre id="planout" aria-live="polite"></pre></div>
+<canvas id="cv" role="img" aria-label="Interactive 3D map of demo routes coloured by notice status"></canvas>
+<p class="mu" id="netinfo">Drag to rotate · click a route for details · green active, orange upcoming, yellow stale, red cancelled, grey expired.</p></section>
+<section id="v-sources" class="hide"><h2>Source health</h2><div class="wrap" id="srcT"></div>
+<p class="mu">Admin sign-in, source editing and manual notice entry need the backend described in your spec (Express + PostgreSQL); this hosted page is the front-end demo.</p></section>
+
+<section id="v-ai" class="hide"><h2>AI assistant</h2>
+<div class="card ai"><p class="mu" style="margin-top:0">Ask about the demo notices (e.g. “What affects Route 12 this week?”). Answers use only the notices in this demo.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="aq" style="flex:1;min-width:200px" aria-label="Question" placeholder="Ask a question…">
+<button class="btn" id="ask">Ask AI</button><button class="btn alt" id="digest">Plain-language digest</button></div>
+<pre id="aout" aria-live="polite"></pre></div></section>
+
+<section id="v-about" class="hide"><h2>About &amp; data limitations</h2><div class="card">
+<p>TransitNotice is designed to show only advisories collected from official, permitted sources, with a last-verified time on each. If a source can’t be checked, notices are marked stale rather than treated as current.</p>
+<p>This page runs in DEMO mode with sample data. AI answers can contain mistakes: always confirm with the agency’s original notice before travelling.</p></div></section>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const H=3600e3,D=24*H,now=Date.now();
+const N=[
+{id:"DM-101",route:"12",name:"Harbor Line",area:"Harbor District",stop:"Pier Station",type:"Route diversion",text:"Buses on Route 12 divert via Quay Road due to road works. Pier Station stops are closed.",from:now-2*D,to:now+3*D,src:"Demo Metro Bus",ver:now-20*60e3,stale:0},
+{id:"DM-102",route:"A",name:"Airport Express",area:"North Terminal",stop:"Terminal 1",type:"Delay",text:"Expect 10–15 minute delays on Airport Express because of a signal fault.",from:now-1*H,to:now+5*H,src:"Demo Metro Rail",ver:now-5*60e3,stale:0},
+{id:"DM-103",route:"7",name:"Central Loop",area:"Old Town",stop:"Market Square",type:"Planned maintenance",text:"Overnight track maintenance. Last service ends 22:30 on the affected weekend.",from:now+2*D,to:now+4*D,src:"Demo Metro Rail",ver:now-40*60e3,stale:0},
+{id:"DM-104",route:"33",name:"Riverside",area:"Westbank",stop:"Bridge Stop",type:"Service suspension",text:"Route 33 suspended while the bridge is inspected.",from:now-4*D,to:now+1*D,src:"Demo Regional Coaches",ver:now-3*D,stale:1},
+{id:"DM-105",route:"5",name:"University Link",area:"Campus",stop:"Library",type:"Cancellation",text:"Evening trips cancelled for this week due to reduced demand.",from:now-D,to:now+4*D,src:"Demo Metro Bus",ver:now-2*H,stale:0,cancelled:1},
+{id:"DM-106",route:"9",name:"Eastern Ring",area:"Eastgate",stop:"Depot Road",type:"Route reopening",text:"Route 9 reopens on its regular path after repairs.",from:now-9*D,to:now-2*D,src:"Demo Metro Bus",ver:now-30*60e3,stale:0}];
+N.forEach(n=>n.status=n.cancelled?"Cancelled":n.stale?"Stale":n.to<now?"Expired":n.from>now?"Upcoming":"Active");
+const S=[{n:"Demo Metro Bus",h:"Healthy",t:now-20*60e3,c:3},{n:"Demo Metro Rail",h:"Healthy",t:now-5*60e3,c:2},{n:"Demo Regional Coaches",h:"Unavailable",t:now-3*D,c:1,e:"Request timed out (simulated)"}];
+const $=s=>document.querySelector(s),f=t=>new Date(t).toLocaleString([],{dateStyle:"medium",timeStyle:"short"});
+const ago=t=>{const m=Math.round((now-t)/6e4);return m<60?m+" min ago":m<1440?Math.round(m/60)+" h ago":Math.round(m/1440)+" d ago"};
+const el=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt!=null)e.textContent=txt;if(cls)e.className=cls;return e};
+let sortKey="from",dir=-1;
+[...new Set(N.map(n=>n.type))].forEach(t=>$("#ft").append(new Option(t,t)));
+function filtered(){const q=$("#q").value.toLowerCase(),s=$("#fs").value,t=$("#ft").value;
+return N.filter(n=>(!s||n.status==s)&&(!t||n.type==t)&&(!q||[n.route,n.name,n.area,n.stop,n.type,n.text,n.src].join(" ").toLowerCase().includes(q)))
+.sort((a,b)=>(a[sortKey]>b[sortKey]?1:-1)*dir)}
+function table(rows,box,sortable){box.replaceChildren();
+if(!rows.length){box.append(el("p","No notices match your filters.","mu"));return}
+const t=el("table"),hd=t.createTHead().insertRow();
+[["Route","route"],["Notice","type"],["Area","area"],["Status","status"],["Valid until","to"],["Verified","ver"]].forEach(([l,k])=>{
+const th=el("th",l);th.scope="col";if(sortable){th.tabIndex=0;th.onclick=()=>{dir=sortKey==k?-dir:-1;sortKey=k;render()};th.onkeydown=e=>e.key=="Enter"&&th.onclick()}hd.append(th)});
+const b=t.createTBody();rows.forEach(n=>{const r=b.insertRow();r.className="row";r.tabIndex=0;
+r.onclick=()=>open(n);r.onkeydown=e=>e.key=="Enter"&&open(n);
+r.insertCell().textContent=n.route+" · "+n.name;r.insertCell().textContent=n.type;r.insertCell().textContent=n.area;
+r.insertCell().append(el("span",n.status,"badge "+n.status));r.insertCell().textContent=f(n.to);
+r.insertCell().textContent=n.stale?"⚠ "+ago(n.ver)+" (may be outdated)":ago(n.ver)});
+box.append(t)}
+function open(n){show("notices");const d=$("#detail");d.classList.remove("hide");d.replaceChildren(
+el("h2",n.route+" · "+n.name+" – "+n.type),el("span",n.status,"badge "+n.status),el("p",n.text),
+el("p","Stop: "+n.stop+" · Area: "+n.area+" · Valid "+f(n.from)+" → "+f(n.to),"mu"),
+el("p","Source: "+n.src+" (demo, no real link) · Last verified "+f(n.ver)+(n.stale?" – source unreachable, may be outdated":""),"mu"));
+const b=el("button","✨ Explain with AI","btn");const o=el("pre",null);o.setAttribute("aria-live","polite");
+b.onclick=()=>ai("In 2 short sentences, explain this transport notice for a passenger and suggest what to do. Notice: "+JSON.stringify(pub(n)),o,b);
+d.append(b,o);d.focus();d.scrollIntoView({behavior:"smooth"})}
+const pub=n=>({route:n.route,name:n.name,area:n.area,stop:n.stop,type:n.type,status:n.status,text:n.text,validFrom:f(n.from),validTo:f(n.to),lastVerified:f(n.ver),possiblyOutdated:!!n.stale});
+let samp;
+async function ai(prompt,out,btn){
+try{samp=samp||await claude.use("sample")}catch(e){samp=null}
+if(!samp){out.textContent="AI isn’t available in this view.";return}
+btn&&(btn.disabled=true);out.textContent="Thinking…";
+const sys="You are the assistant inside TransitNotice, a demo transport-advisory tracker. Use ONLY the notice data provided; never invent notices or live information. If data is stale or missing, say so. Be concise. All data is fictional demo data.\n\n";
+try{const r=await samp(sys+prompt,{onText:({text})=>{out.textContent=text},cache:false});out.textContent=r.text}
+catch(e){out.textContent=e&&e.code=="not_granted"?"AI access was not granted.":e&&e.code=="rate_limited"?"Too many requests – try again shortly.":"The AI request failed. Please retry."}
+finally{btn&&(btn.disabled=false)}}
+$("#ask").onclick=()=>{const q=$("#aq").value.trim();if(q)ai("Notices: "+JSON.stringify(N.map(pub))+"\nCurrent time: "+f(now)+"\nQuestion: "+q,$("#aout"),$("#ask"))};
+$("#aq").onkeydown=e=>e.key=="Enter"&&$("#ask").click();
+$("#digest").onclick=()=>ai("Notices: "+JSON.stringify(N.map(pub))+"\nCurrent time: "+f(now)+"\nWrite a short passenger digest grouped by urgency (now, coming up, resolved). Flag any stale information.",$("#aout"),$("#digest"));
+function render(){const c=$("#cards");c.replaceChildren();
+[["Active notices",N.filter(n=>n.status=="Active").length,"var(--gr)"],["Upcoming changes",N.filter(n=>n.status=="Upcoming").length,"var(--or)"],
+["Updated in last hour",N.filter(n=>now-n.ver<H).length,"var(--bl)"],["Healthy sources",S.filter(s=>s.h=="Healthy").length+"/"+S.length,"var(--cy)"]]
+.forEach(([l,v,col])=>{const d=el("div",null,"card");const b=el("b",v);b.style.color=col;d.append(b,el("span",l));c.append(d)});
+table(filtered().slice(0,4),$("#dashT"),false);table(filtered(),$("#allT"),true);
+const st=el("table"),h=st.createTHead().insertRow();["Source","Health","Last success","Notices","Last error"].forEach(x=>{const th=el("th",x);th.scope="col";h.append(th)});
+S.forEach(s=>{const r=st.createTBody().insertRow();r.insertCell().textContent=s.n;
+r.insertCell().append(el("span",s.h,"badge "+(s.h=="Healthy"?"Active":"Stale")));
+r.insertCell().textContent=ago(s.t);r.insertCell().textContent=s.c;r.insertCell().textContent=s.e||"–"});
+$("#srcT").replaceChildren(st);$("#stamp").textContent="Demo data · checked "+ago(now-5*60e3)}
+function show(v){if(v=="net")setTimeout(initNet,30);document.querySelectorAll("section").forEach(s=>s.classList.toggle("hide",s.id!="v-"+v));
+document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==v))}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
+["#q","#fs","#ft"].forEach(s=>$(s).oninput=()=>{render();if(s=="#q")show("notices")});
+$("#refresh").onclick=()=>{$("#stamp").textContent="Demo only – no live sources to refresh"};
+const AR={Harbor:[-6,0,3],Airport:[7,0,-5],Old:[0,0,0],West:[-7,0,-3],Campus:[4,0,4],East:[8,0,2]};
+const AN={Harbor:"Harbor District",Airport:"North Terminal",Old:"Old Town",West:"Westbank",Campus:"Campus",East:"Eastgate"};
+const RP={"DM-101":["Harbor","Old","Campus"],"DM-102":["Old","Airport"],"DM-103":["Old","East"],"DM-104":["West","Old"],"DM-105":["Campus","East"],"DM-106":["East","Old"]};
+const COL={Active:0x22c55e,Upcoming:0xf97316,Expired:0x64748b,Cancelled:0xef4444,Stale:0xeab308,Revised:0x3b82f6};
+let net=null;
+function lab(t,p){const c=document.createElement("canvas");c.width=256;c.height=64;const x=c.getContext("2d");x.fillStyle="#e2e8f0";x.font="bold 30px sans-serif";x.textAlign="center";x.fillText(t,128,42);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));s.position.set(p[0],1.2,p[2]);s.scale.set(4,1,1);return s}
+function initNet(){
+if(net){net.resize();return}
+if(!window.THREE){$("#netinfo").textContent="The 3D engine failed to load.";return}
+const cv=$("#cv");let r;
+try{r=new THREE.WebGLRenderer({canvas:cv,antialias:true})}catch(e){$("#netinfo").textContent="3D isn’t supported on this device.";return}
+r.setPixelRatio(Math.min(devicePixelRatio,2));
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,1,.1,100),g=new THREE.Group();sc.add(g);
+cam.position.set(0,11,16);cam.lookAt(0,0,0);
+sc.add(new THREE.AmbientLight(0xffffff,.6));const pl=new THREE.PointLight(0x06b6d4,1.2);pl.position.set(0,12,6);sc.add(pl);
+const gr=new THREE.GridHelper(24,24,0x06b6d4,0x1e293b);gr.position.y=-.3;g.add(gr);
+Object.keys(AR).forEach(k=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.35,16,16),new THREE.MeshBasicMaterial({color:0x06b6d4}));m.position.set(AR[k][0],.3,AR[k][2]);g.add(m);g.add(lab(AN[k],AR[k]))});
+const R=[],T=[];
+N.forEach((n,i)=>{const ks=RP[n.id],pts=[];
+ks.forEach((k,j)=>{const a=new THREE.Vector3(AR[k][0],.4+i*.3,AR[k][2]);if(j){const p=pts[pts.length-1];pts.push(p.clone().add(a).multiplyScalar(.5).add(new THREE.Vector3(0,1.2,0)))}pts.push(a)});
+const cu=new THREE.CatmullRomCurve3(pts),col=COL[n.status];
+const m=new THREE.Mesh(new THREE.TubeGeometry(cu,48,.12,8,false),new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.6,transparent:true}));
+m.userData.id=n.id;g.add(m);R.push(m);
+if(n.status=="Active"||n.status=="Upcoming"||n.status=="Stale"){const t=new THREE.Mesh(new THREE.SphereGeometry(.22,12,12),new THREE.MeshBasicMaterial({color:0xffffff}));g.add(t);T.push({t,cu,o:i*.17})}});
+const hl=ids=>R.forEach(m=>{const on=!ids||ids.includes(m.userData.id);m.material.opacity=on?1:.12;m.material.emissiveIntensity=ids&&on?1.3:.6});
+let dn=null,mv=0;
+cv.onpointerdown=e=>{dn=[e.clientX,e.clientY];mv=0;cv.setPointerCapture(e.pointerId)};
+cv.onpointermove=e=>{if(!dn)return;const dx=e.clientX-dn[0],dy=e.clientY-dn[1];mv+=Math.abs(dx)+Math.abs(dy);dn=[e.clientX,e.clientY];g.rotation.y+=dx*.008;g.rotation.x=Math.max(-.6,Math.min(.6,g.rotation.x+dy*.005))};
+cv.onpointerup=e=>{dn=null;if(mv>5)return;const b=cv.getBoundingClientRect(),rc=new THREE.Raycaster();rc.setFromCamera(new THREE.Vector2((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1),cam);
+const h=rc.intersectObjects(R)[0];if(h){const n=N.find(x=>x.id==h.object.userData.id);hl([n.id]);$("#netinfo").textContent=n.route+" "+n.name+" – "+n.type+" ("+n.status+"): "+n.text}else{hl(null)}};
+const resize=()=>{const w=cv.clientWidth,h=cv.clientHeight;r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()};
+resize();addEventListener("resize",resize);
+(function loop(t){if(!dn&&!reduce)g.rotation.y+=.002;if(!reduce)T.forEach(x=>x.t.position.copy(x.cu.getPoint((t*.00015+x.o)%1)));r.render(sc,cam);requestAnimationFrame(loop)})(0);
+net={resize,hl}}
+$("#plan").onclick=async()=>{const q=$("#trip").value.trim(),o=$("#planout"),b=$("#plan");if(!q)return;
+try{samp=samp||await claude.use("sample")}catch(e){samp=null}
+if(!samp){o.textContent="AI isn’t available in this view.";return}
+b.disabled=true;o.textContent="Analyzing…";
+try{const v=await samp.json("You are TransitNotice’s trip impact analyzer (fictional demo data). Use ONLY these notices: "+JSON.stringify(N.map(n=>({id:n.id,...pub(n)})))+" Areas: "+Object.values(AN).join(", ")+". Current time: "+f(now)+". Trip: "+q+'. Reply with JSON only: {"affected":[notice ids relevant to this trip],"risk":"Low|Medium|High","advice":"2-3 sentences; mention stale data if relevant"}');
+const ids=Array.isArray(v.affected)?v.affected.filter(x=>N.some(n=>n.id==x)):[];
+o.textContent="Risk: "+v.risk+"\n"+v.advice+(ids.length?"\nHighlighted in 3D: "+ids.join(", "):"");
+net&&net.hl(ids.length?ids:null)}
+catch(e){o.textContent=e&&e.code=="not_granted"?"AI access was not granted.":e&&e.code=="rate_limited"?"Too many requests – try again shortly.":"The AI request failed. Please retry."}
+finally{b.disabled=false}};
+render();
+</script></body></html>
